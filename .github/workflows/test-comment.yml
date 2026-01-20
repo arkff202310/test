@@ -1,0 +1,42 @@
+name: Test Comment Trigger
+
+on:
+  issue_comment:
+    types: [ created ]  # Only trigger on PR comments with @tester test
+
+jobs:
+  test_job:
+    name: Test Job
+    # Only run on PR comments that mention @tester test
+    if: |
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '@tester test')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    
+    steps:
+    - name: Get PR head SHA
+      id: pr-head
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        PR_HEAD_SHA=$(gh pr view ${{ github.event.issue.number }} --repo ${{ github.repository }} --json headRefOid --jq '.headRefOid')
+        echo "sha=$PR_HEAD_SHA" >> $GITHUB_OUTPUT
+        echo "PR head SHA: $PR_HEAD_SHA"
+
+    - name: Checkout repository
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ steps.pr-head.outputs.sha }}
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Run main.js
+      run: node main.js
