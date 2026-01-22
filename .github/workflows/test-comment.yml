@@ -1,17 +1,20 @@
 name: Test Comment Trigger
 
 on:
+  pull_request:
+    types: [opened, ready_for_review]  # When PR is ready for review (not draft)
   issue_comment:
     types: [ created ]  # Only trigger on PR comments with @tester test
 
 jobs:
   test_job:
     name: Test Job
-    # Only run on PR comments that mention @tester test
+    # Run if: (PR opened/ready AND not draft) OR @tester test in PR comment
     if: |
-      github.event_name == 'issue_comment' &&
-      github.event.issue.pull_request &&
-      contains(github.event.comment.body, '@tester test')
+      (github.event_name == 'pull_request' && !github.event.pull_request.draft) ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '@tester test'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -23,8 +26,10 @@ jobs:
       run: |
         echo "Event name: ${{ github.event_name }}"
         echo "GitHub ref: ${{ github.ref }}"
-        echo "PR number: ${{ github.event.issue.number }}"
-        echo "Is PR: ${{ github.event.issue.pull_request }}"
+        echo "PR number: ${{ github.event.pull_request.number || github.event.issue.number }}"
+        echo "Is PR: ${{ github.event.issue.pull_request || github.event.pull_request }}"
+        echo "PR head SHA: ${{ github.event.pull_request.head.sha }}"
+        echo "PR head ref: ${{ github.event.pull_request.head.ref }}"
 
     - name: Checkout repository
       uses: actions/checkout@v6
