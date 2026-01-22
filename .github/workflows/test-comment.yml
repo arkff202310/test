@@ -19,19 +19,22 @@ jobs:
       issues: read
     
     steps:
-    - name: Get PR head SHA
-      id: pr-head
-      env:
-        GH_TOKEN: ${{ github.token }}
+    - name: Debug event context
       run: |
-        PR_HEAD_SHA=$(gh pr view ${{ github.event.issue.number }} --repo ${{ github.repository }} --json headRefOid --jq '.headRefOid')
-        echo "sha=$PR_HEAD_SHA" >> $GITHUB_OUTPUT
-        echo "PR head SHA: $PR_HEAD_SHA"
+        echo "Event name: ${{ github.event_name }}"
+        echo "GitHub ref: ${{ github.ref }}"
+        echo "PR number: ${{ github.event.issue.number }}"
+        echo "Is PR: ${{ github.event.issue.pull_request }}"
 
     - name: Checkout repository
       uses: actions/checkout@v6
-      with:
-        ref: ${{ steps.pr-head.outputs.sha }}
+    
+    - name: Debug checkout result
+      run: |
+        echo "Current branch: $(git branch --show-current)"
+        echo "Current SHA: $(git rev-parse HEAD)"
+        echo "Git log (last 3 commits):"
+        git log --oneline -3
     
     - name: Setup Node.js
       uses: actions/setup-node@v4
